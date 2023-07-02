@@ -1,40 +1,82 @@
-
 import discord
+from discord.ext import commands
+from bs4 import BeautifulSoup
 import requests
 import asyncio
 
-client = discord.Client()
-
 # Discord IDs
-guild_id = '501070813529767937'
-channel_id = '1124813598330454127'
+discord_id = '' #Remember to put id's back in
+channel_id = ''
 
-@client.event
+# Bot Command Prefix
+intents = discord.Intents.default()
+intents.typing = False
+intents.presences = False
+intents.messages = True
+intents.guilds = True
+intents.members = True
+intents.reactions = True
+intents.emojis_and_stickers = True
+intents.integrations = True
+intents.webhooks = True
+intents.invites = True
+intents.voice_states = True
+intents.presences = True
+intents.bans = True
+intents.message_content = True
+bot = commands.Bot(command_prefix='!', intents=intents)
+
+@bot.event
 async def on_ready():
-    print(f'Logged in as {client.user.name}')
+    print(f'Logged in as {bot.user.name}')
     print('Success')
 
-@client.event
-async def on_message(message):
-    if message.author == client.user:
-        return
-    
-    if message.content.startswith('!start_timers'):
-        await start_timers(message.channel)
-
-async def start_timers(channel):
+@bot.command()
+async def start_timers(ctx):
     while True:
         try:
             timers = fetch_timers()
             for timer in timers:
                 if timer['time'] == '5:00':
-                    target_guild = client.get_guild(int(guild_id))
-                    target_channel = target_guild.get_channel(int(channel_id))
-                    await target_channel.send(f"{timer['name']} timer has reached 5 minutes!")
+                    channel = bot.get_channel(int(channel_id))
+                    await channel.send(f"{timer['name']} timer has reached 5 minutes!")
             await asyncio.sleep(60)  # Check timers every minute
         except Exception as e:
             print(f"An error occurred: {e}")
 
+@bot.command()
+async def test_message(ctx):
+    channel = bot.get_channel(int(channel_id))
+    await channel.send("This is a test message!")
+
+def fetch_timers():
+    url = 'https://helltides.com/'
+    response = requests.get(url)
+    if response.status_code == 200:
+        html_content = response.text
+        soup = BeautifulSoup(html_content, 'html.parser')
+        timers = []
+        # Perform web scraping to extract timers
+        # Make sure to adjust the code based on the HTML structure of the website
+        # Here's an example assuming the timers are within <div class="timer"> elements:
+        timer_elements = soup.find_all('div', class_='timer')
+        for timer_element in timer_elements:
+            timer_name = timer_element.find('span', class_='timer-name').text
+            timer_time = timer_element.find('span', class_='timer-time').text
+            timer_data = {'name': timer_name, 'time': timer_time}
+            timers.append(timer_data)
+        return timers
+    else:
+        print(f"Failed to fetch timers. Status code: {response.status_code}")
+
+TOKEN = '' #Remember to put token back in
+
+try:
+    bot.run(TOKEN)
+except discord.LoginFailure:
+    print("Invalid Discord bot token provided.")
+except Exception as e:
+    print(f"An error occurred while running the bot: {e}")
 def fetch_timers():
     response = requests.get('https://helltides.com/api/timers')
     if response.status_code == 200:
