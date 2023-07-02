@@ -1,1 +1,46 @@
 
+import discord
+import requests
+import asyncio
+
+client = discord.Client()
+
+# Discord IDs
+guild_id = '501070813529767937'
+channel_id = '1124813598330454127'
+
+@client.event
+async def on_ready():
+    print(f'Logged in as {client.user.name}')
+    print('Success')
+
+@client.event
+async def on_message(message):
+    if message.author == client.user:
+        return
+    
+    if message.content.startswith('!start_timers'):
+        await start_timers(message.channel)
+
+async def start_timers(channel):
+    while True:
+        try:
+            timers = fetch_timers()
+            for timer in timers:
+                if timer['time'] == '5:00':
+                    target_guild = client.get_guild(int(guild_id))
+                    target_channel = target_guild.get_channel(int(channel_id))
+                    await target_channel.send(f"{timer['name']} timer has reached 5 minutes!")
+            await asyncio.sleep(60)  # Check timers every minute
+        except Exception as e:
+            print(f"An error occurred: {e}")
+
+def fetch_timers():
+    response = requests.get('https://helltides.com/api/timers')
+    if response.status_code == 200:
+        return response.json()
+    else:
+        print(f"Failed to fetch timers. Status code: {response.status_code}")
+
+TOKEN = 1124510847125954560
+client.run(TOKEN)
